@@ -1,5 +1,4 @@
-pub use bytemuck::Pod;
-pub use bytemuck::Zeroable;
+use crate::data;
 
 pub struct Layout {
     stride: wgpu::BufferAddress,
@@ -13,37 +12,6 @@ impl Layout {
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &self.attributes,
         }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Format {
-    Float32x2,
-    Float32x3,
-}
-
-impl Into<wgpu::VertexFormat> for Format {
-    fn into(self) -> wgpu::VertexFormat {
-        match self {
-            Format::Float32x2 => wgpu::VertexFormat::Float32x2,
-            Format::Float32x3 => wgpu::VertexFormat::Float32x3,
-        }
-    }
-}
-
-pub trait Attribute {
-    fn format() -> Format;
-}
-
-impl Attribute for [f32; 3] {
-    fn format() -> Format {
-        Format::Float32x3
-    }
-}
-
-impl Attribute for [f32; 2] {
-    fn format() -> Format {
-        Format::Float32x2
     }
 }
 
@@ -64,7 +32,7 @@ impl LayoutBuilder {
         }
     }
 
-    pub fn attribute<T: Attribute>(&mut self) {
+    pub fn attribute<T: data::Data>(&mut self) {
         let format: wgpu::VertexFormat = T::format().into();
 
         let current_location = self.location;
@@ -88,7 +56,7 @@ impl LayoutBuilder {
     }
 }
 
-pub unsafe trait Vertex: Pod + Zeroable {
+pub unsafe trait Vertex: data::Pod + data::Zeroable {
     fn layout() -> Layout;
 }
 
@@ -113,7 +81,7 @@ macro_rules! impl_vertex {
             }
         }
 
-        unsafe impl $crate::vertex::Pod for $name {}
-        unsafe impl $crate::vertex::Zeroable for $name {}
+        unsafe impl $crate::data::Pod for $name {}
+        unsafe impl $crate::data::Zeroable for $name {}
     };
 }

@@ -36,7 +36,10 @@ impl<T: State> WindowState<T> {
     pub fn event(&mut self, event_loop: &ActiveEventLoop, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::Resized(size) => self.graphics.resize(size),
+            WindowEvent::Resized(size) => {
+                self.graphics.resize(size);
+                self.user_state.resize(self.graphics.context_mut(), size.width as f32, size.height as f32);
+            }
             WindowEvent::RedrawRequested => match self.graphics.render(&self.user_state) {
                 Ok(_) => {}
                 Err(wgpu::SurfaceError::Lost) => self.graphics.resize_own(),

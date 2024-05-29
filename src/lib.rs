@@ -6,31 +6,34 @@ use winit::{
     window::WindowId,
 };
 
+mod bind_group;
+mod buffer;
+mod context;
 mod frame;
 mod graphics_state;
-mod window_state;
 mod pass;
-mod context;
-mod buffer;
 mod pipeline;
 mod texture;
-mod bind_group;
+mod window_state;
 
+pub mod data;
+pub mod uniform;
 pub mod vertex;
 
+pub use bind_group::*;
+pub use buffer::*;
+pub use context::*;
 pub use frame::*;
 pub use pass::*;
-pub use context::*;
-pub use buffer::*;
 pub use pipeline::*;
 pub use texture::*;
-pub use bind_group::*;
 
 pub type BufferAddress = wgpu::BufferAddress;
 pub type DynamicOffset = wgpu::DynamicOffset;
 
 pub trait State {
     fn new(context: &mut Context) -> Self;
+    fn resize(&mut self, _ctx: &mut Context, _width: f32, _height: f32) {}
     fn render(&self, frame: &mut Frame);
 }
 

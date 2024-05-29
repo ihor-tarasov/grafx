@@ -1,4 +1,4 @@
-use crate::{PipelineBuilder, Sampler, Texture2D};
+use crate::{Buffer, PipelineBuilder, Sampler, Texture2D};
 
 pub(crate) trait BindGroupEntry {
     fn visibility(&self) -> wgpu::ShaderStages;
@@ -8,9 +8,9 @@ pub(crate) trait BindGroupEntry {
 
 pub struct BindGroup(pub(crate) wgpu::BindGroup);
 
-pub struct BindGroupBuilder(Vec<Box<dyn BindGroupEntry>>);
+pub struct BindGroupBuilder<'a>(Vec<&'a dyn BindGroupEntry>);
 
-impl BindGroupBuilder {
+impl<'a> BindGroupBuilder<'a> {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -23,6 +23,7 @@ impl BindGroupBuilder {
         let layout_entries = self
             .0
             .iter()
+            .copied()
             .enumerate()
             .map(|(binding, entry)| wgpu::BindGroupLayoutEntry {
                 binding: binding as u32,
@@ -38,6 +39,7 @@ impl BindGroupBuilder {
         let entries = self
             .0
             .iter()
+            .copied()
             .enumerate()
             .map(|(binding, entry)| wgpu::BindGroupEntry {
                 binding: binding as u32,
@@ -54,20 +56,27 @@ impl BindGroupBuilder {
     }
 }
 
-pub trait BindGroupBuilderWith<T> {
-    fn with(self, data: T) -> Self;
+pub trait BindGroupBuilderWith<'a, T> {
+    fn with(self, data: &'a T) -> Self;
 }
 
-impl BindGroupBuilderWith<Texture2D> for BindGroupBuilder {
-    fn with(mut self, data: Texture2D) -> Self {
-        self.0.push(Box::new(data));
+impl<'a> BindGroupBuilderWith<'a, Texture2D> for BindGroupBuilder<'a> {
+    fn with(mut self, data: &'a Texture2D) -> Self {
+        self.0.push(data);
         self
     }
 }
 
-impl BindGroupBuilderWith<Sampler> for BindGroupBuilder {
-    fn with(mut self, data: Sampler) -> Self {
-        self.0.push(Box::new(data));
+impl<'a> BindGroupBuilderWith<'a, Sampler> for BindGroupBuilder<'a> {
+    fn with(mut self, data: &'a Sampler) -> Self {
+        self.0.push(data);
+        self
+    }
+}
+
+impl<'a> BindGroupBuilderWith<'a, Buffer> for BindGroupBuilder<'a> {
+    fn with(mut self, data: &'a Buffer) -> Self {
+        self.0.push(data);
         self
     }
 }
