@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use glam::*;
 
-use crate::{buffer, pipeline};
+use crate::{buffer, pipeline, BindGroup, DynamicOffset};
 
 pub struct Pass<'a>(wgpu::RenderPass<'a>);
 
@@ -58,5 +58,14 @@ impl<'a> Pass<'a> {
 
     pub fn draw_indexed(&mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>) {
         self.0.draw_indexed(indices, base_vertex, instances);
+    }
+
+    pub fn set_bind_group(
+        &mut self,
+        index: u32,
+        bind_group: &'a BindGroup,
+        offsets: &[DynamicOffset],
+    ) {
+        self.0.set_bind_group(index, &bind_group.0, offsets);
     }
 }

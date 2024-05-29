@@ -13,6 +13,8 @@ mod pass;
 mod context;
 mod buffer;
 mod pipeline;
+mod texture;
+mod bind_group;
 
 pub mod vertex;
 
@@ -21,6 +23,11 @@ pub use pass::*;
 pub use context::*;
 pub use buffer::*;
 pub use pipeline::*;
+pub use texture::*;
+pub use bind_group::*;
+
+pub type BufferAddress = wgpu::BufferAddress;
+pub type DynamicOffset = wgpu::DynamicOffset;
 
 pub trait State {
     fn new(context: &mut Context) -> Self;

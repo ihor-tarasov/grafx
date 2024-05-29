@@ -1,4 +1,6 @@
-use crate::{buffer, pipeline, vertex};
+use crate::{
+    buffer, pipeline, vertex, BindGroup, BindGroupBuilder, PipelineBuilder, Sampler, Texture2D,
+};
 
 pub struct Context {
     device: wgpu::Device,
@@ -41,5 +43,21 @@ impl Context {
 
     pub fn index_buffer<T: vertex::Pod>(&self, data: &[T]) -> buffer::Buffer {
         buffer::Buffer::new_index(&self.device, data)
+    }
+
+    pub fn sampler(&self) -> Sampler {
+        Sampler::new(&self.device)
+    }
+
+    pub fn load_texture_2d(&self, data: &[u8]) -> Texture2D {
+        Texture2D::load(&self.device, &self.queue, data)
+    }
+
+    pub fn bind_group(
+        &self,
+        bind_group_builder: BindGroupBuilder,
+        pipeline_builder: &mut PipelineBuilder,
+    ) -> BindGroup {
+        bind_group_builder.build(&self.device, pipeline_builder)
     }
 }

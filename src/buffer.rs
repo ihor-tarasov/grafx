@@ -2,7 +2,7 @@ use std::ops::RangeBounds;
 
 use wgpu::util::DeviceExt;
 
-use crate::vertex;
+use crate::{vertex, BufferAddress};
 
 pub use wgpu::IndexFormat;
 
@@ -31,7 +31,7 @@ impl Buffer {
         )
     }
 
-    pub fn slice<T: RangeBounds<u64>>(&self, bounds: T) -> BufferSlice {
+    pub fn slice<T: RangeBounds<BufferAddress>>(&self, bounds: T) -> BufferSlice {
         BufferSlice(self.0.slice(bounds))
     }
 }

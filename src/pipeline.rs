@@ -12,21 +12,27 @@ impl Shader {
 }
 
 pub struct PipelineBuilder<'a> {
-    buffers: Vec<vertex::Layout>,
     shader: &'a Shader,
+    buffers: Vec<vertex::Layout>,
+    bind_group_layouts: Vec<wgpu::BindGroupLayout>,
 }
 
 impl<'a> PipelineBuilder<'a> {
     pub fn new(shader: &'a Shader) -> Self {
         Self {
-            buffers: Vec::new(),
             shader,
+            buffers: Vec::new(),
+            bind_group_layouts: Vec::new(),
         }
     }
 
     pub fn with_vertex<T: vertex::Vertex>(mut self) -> Self {
         self.buffers.push(T::layout());
         self
+    }
+
+    pub(crate) fn with_bind_group_layout(&mut self, layout: wgpu::BindGroupLayout) {
+        self.bind_group_layouts.push(layout);
     }
 }
 
@@ -43,9 +49,14 @@ impl Pipeline {
             .iter()
             .map(|layout| layout.as_vertex_buffer_layout())
             .collect::<Box<_>>();
+        let bind_group_layouts = builder
+            .bind_group_layouts
+            .iter()
+            .map(|layout| layout)
+            .collect::<Box<_>>();
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[],
+            bind_group_layouts: &bind_group_layouts,
             push_constant_ranges: &[],
         });
         Self(
