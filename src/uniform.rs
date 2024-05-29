@@ -8,7 +8,7 @@ pub fn check_data_for_pod<T: data::Pod + data::Zeroable>(_: &T) {}
 macro_rules! impl_uniform {
     {$visibility:vis struct $name:ident { $($field:ident: $field_type:ty),* $(,)?} } => {
         #[repr(C)]
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Copy)]
         $visibility struct $name {
             $(
                 $field: $field_type,

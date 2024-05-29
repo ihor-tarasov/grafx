@@ -1,11 +1,11 @@
 use image::RgbaImage;
 
-use crate::BindGroupEntry;
+use crate::{BindGroupEntry, Context};
 
 pub struct Texture2D(wgpu::TextureView);
 
 impl Texture2D {
-    fn new(device: &wgpu::Device, queue: &wgpu::Queue, image: RgbaImage) -> Self {
+    fn new_internal(device: &wgpu::Device, queue: &wgpu::Queue, image: RgbaImage) -> Self {
         let dimentions = image.dimensions();
         let size = wgpu::Extent3d {
             width: dimentions.0,
@@ -40,9 +40,9 @@ impl Texture2D {
         Self(texture.create_view(&wgpu::TextureViewDescriptor::default()))
     }
 
-    pub(crate) fn load(device: &wgpu::Device, queue: &wgpu::Queue, data: &[u8]) -> Self {
+    pub fn new(ctx: &Context, data: &[u8]) -> Self {
         let image = image::load_from_memory(data).unwrap().to_rgba8();
-        Self::new(device, queue, image)
+        Self::new_internal(ctx.device(), ctx.queue(), image)
     }
 }
 
@@ -67,8 +67,8 @@ impl BindGroupEntry for Texture2D {
 pub struct Sampler(wgpu::Sampler);
 
 impl Sampler {
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
-        Self(device.create_sampler(&wgpu::SamplerDescriptor {
+    pub fn new(ctx: &Context) -> Self {
+        Self(ctx.device().create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,

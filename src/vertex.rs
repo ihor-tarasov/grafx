@@ -64,7 +64,7 @@ pub unsafe trait Vertex: data::Pod + data::Zeroable {
 macro_rules! impl_vertex {
     {$visibility:vis struct $name:ident { $($field:ident: $field_type:ty),* $(,)?} } => {
         #[repr(C)]
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Copy)]
         $visibility struct $name {
             $(
                 $field: $field_type,

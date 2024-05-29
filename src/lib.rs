@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use window_state::WindowState;
 use winit::{
     application::ApplicationHandler,
@@ -31,9 +33,13 @@ pub use texture::*;
 pub type BufferAddress = wgpu::BufferAddress;
 pub type DynamicOffset = wgpu::DynamicOffset;
 
+pub use winit::keyboard::KeyCode;
+
 pub trait State {
     fn new(context: &mut Context) -> Self;
     fn resize(&mut self, _ctx: &mut Context, _width: f32, _height: f32) {}
+    fn key(&mut self, _ctx: &mut Context, _code: KeyCode, _pressed: bool) {}
+    fn update(&mut self, _delta: Duration, _ctx: &mut Context) {}
     fn render(&self, frame: &mut Frame);
 }
 
@@ -64,8 +70,8 @@ impl<T: State> ApplicationHandler for App<T> {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        if let Some(state) = self.window.as_ref() {
-            state.request_redraw();
+        if let Some(state) = self.window.as_mut() {
+            state.update();
         }
     }
 }

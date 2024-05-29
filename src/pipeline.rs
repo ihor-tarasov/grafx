@@ -1,13 +1,16 @@
-use crate::vertex;
+use crate::{vertex, Context, Pass};
 
 pub struct Shader(pub(crate) wgpu::ShaderModule);
 
 impl Shader {
-    pub(crate) fn new(device: &wgpu::Device, src: String) -> Self {
-        Self(device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(src.into()),
-        }))
+    pub fn new(ctx: &Context, src: String) -> Self {
+        Self(
+            ctx.device()
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: None,
+                    source: wgpu::ShaderSource::Wgsl(src.into()),
+                }),
+        )
     }
 }
 
@@ -34,16 +37,16 @@ impl<'a> PipelineBuilder<'a> {
     pub(crate) fn with_bind_group_layout(&mut self, layout: wgpu::BindGroupLayout) {
         self.bind_group_layouts.push(layout);
     }
+
+    pub fn build(self, ctx: &Context) -> Pipeline {
+        Pipeline::new(ctx.device(), ctx.format(), self)
+    }
 }
 
-pub struct Pipeline(pub(crate) wgpu::RenderPipeline);
+pub struct Pipeline(wgpu::RenderPipeline);
 
 impl Pipeline {
-    pub(crate) fn new(
-        device: &wgpu::Device,
-        format: wgpu::TextureFormat,
-        builder: PipelineBuilder,
-    ) -> Self {
+    fn new(device: &wgpu::Device, format: wgpu::TextureFormat, builder: PipelineBuilder) -> Self {
         let buffsers = builder
             .buffers
             .iter()
@@ -97,5 +100,9 @@ impl Pipeline {
                 multiview: None,
             }),
         )
+    }
+
+    pub fn attach<'a>(&'a self, pass: &mut Pass<'a>) {
+        pass.0.set_pipeline(&self.0);
     }
 }

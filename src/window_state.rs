@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use winit::{
     event::WindowEvent,
     event_loop::ActiveEventLoop,
+    keyboard::PhysicalKey,
     window::{Window, WindowAttributes},
 };
 
@@ -15,6 +16,7 @@ pub struct WindowState<T> {
     window: Arc<Window>,
     graphics: GraphicsState,
     user_state: T,
+    last_time: Instant,
 }
 
 impl<T: State> WindowState<T> {
@@ -30,6 +32,7 @@ impl<T: State> WindowState<T> {
             window,
             graphics,
             user_state,
+            last_time: Instant::now(),
         }
     }
 
@@ -38,8 +41,19 @@ impl<T: State> WindowState<T> {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => {
                 self.graphics.resize(size);
-                self.user_state.resize(self.graphics.context_mut(), size.width as f32, size.height as f32);
+                self.user_state.resize(
+                    self.graphics.context_mut(),
+                    size.width as f32,
+                    size.height as f32,
+                );
             }
+            WindowEvent::KeyboardInput { event, .. } => match event.physical_key {
+                PhysicalKey::Code(code) => {
+                    self.user_state
+                        .key(self.graphics.context_mut(), code, event.state.is_pressed())
+                }
+                _ => {}
+            },
             WindowEvent::RedrawRequested => match self.graphics.render(&self.user_state) {
                 Ok(_) => {}
                 Err(wgpu::SurfaceError::Lost) => self.graphics.resize_own(),
@@ -50,7 +64,11 @@ impl<T: State> WindowState<T> {
         }
     }
 
-    pub fn request_redraw(&self) {
+    pub fn update(&mut self) {
+        let now = Instant::now();
+        let delta = now - self.last_time;
+        self.last_time = now;
+        self.user_state.update(delta, self.graphics.context_mut());
         self.window.request_redraw();
     }
 }

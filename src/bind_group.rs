@@ -1,4 +1,4 @@
-use crate::{Buffer, PipelineBuilder, Sampler, Texture2D};
+use crate::{Context, Pass, PipelineBuilder, Sampler, Texture2D, UniformBuffer};
 
 pub(crate) trait BindGroupEntry {
     fn visibility(&self) -> wgpu::ShaderStages;
@@ -6,7 +6,13 @@ pub(crate) trait BindGroupEntry {
     fn resource(&self) -> wgpu::BindingResource;
 }
 
-pub struct BindGroup(pub(crate) wgpu::BindGroup);
+pub struct BindGroup(wgpu::BindGroup);
+
+impl BindGroup {
+    pub fn attach<'a>(&'a self, pass: &mut Pass<'a>, index: u32, offsets: &[u32]) {
+        pass.0.set_bind_group(index, &self.0, offsets);
+    }
+}
 
 pub struct BindGroupBuilder<'a>(Vec<&'a dyn BindGroupEntry>);
 
@@ -15,11 +21,7 @@ impl<'a> BindGroupBuilder<'a> {
         Self(Vec::new())
     }
 
-    pub(crate) fn build(
-        self,
-        device: &wgpu::Device,
-        pipeline_builder: &mut PipelineBuilder,
-    ) -> BindGroup {
+    pub fn build(self, ctx: &Context, pipeline_builder: &mut PipelineBuilder) -> BindGroup {
         let layout_entries = self
             .0
             .iter()
@@ -32,10 +34,12 @@ impl<'a> BindGroupBuilder<'a> {
                 count: None,
             })
             .collect::<Box<_>>();
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            entries: &layout_entries,
-        });
+        let layout = ctx
+            .device()
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &layout_entries,
+            });
         let entries = self
             .0
             .iter()
@@ -46,7 +50,7 @@ impl<'a> BindGroupBuilder<'a> {
                 resource: entry.resource(),
             })
             .collect::<Box<_>>();
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let bind_group = ctx.device().create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &layout,
             entries: &entries,
@@ -74,8 +78,8 @@ impl<'a> BindGroupBuilderWith<'a, Sampler> for BindGroupBuilder<'a> {
     }
 }
 
-impl<'a> BindGroupBuilderWith<'a, Buffer> for BindGroupBuilder<'a> {
-    fn with(mut self, data: &'a Buffer) -> Self {
+impl<'a> BindGroupBuilderWith<'a, UniformBuffer> for BindGroupBuilder<'a> {
+    fn with(mut self, data: &'a UniformBuffer) -> Self {
         self.0.push(data);
         self
     }
