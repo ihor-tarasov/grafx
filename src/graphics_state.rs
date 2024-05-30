@@ -64,6 +64,10 @@ impl GraphicsState {
         &mut self.context
     }
 
+    pub(crate) fn context(&self) -> &Context {
+        &self.context
+    }
+
     pub fn resize(&mut self, size: PhysicalSize<u32>) {
         if size.width > 0 && size.height > 0 {
             self.config.width = size.width;

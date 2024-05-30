@@ -27,8 +27,8 @@ impl<T: State> WindowState<T> {
                 .create_window(WindowAttributes::default())
                 .unwrap(),
         );
-        let mut graphics = pollster::block_on(graphics_state::GraphicsState::new(window.clone()));
-        let user_state = T::new(graphics.context_mut());
+        let graphics = pollster::block_on(graphics_state::GraphicsState::new(window.clone()));
+        let user_state = T::new(graphics.context());
         Self {
             window,
             graphics,
@@ -43,20 +43,22 @@ impl<T: State> WindowState<T> {
             WindowEvent::Resized(size) => {
                 self.graphics.resize(size);
                 self.user_state.resize(
-                    self.graphics.context_mut(),
-                    size.width as f32,
-                    size.height as f32,
+                    self.graphics.context(),
+                    vec2(size.width as f32, size.height as f32),
                 );
             }
             WindowEvent::KeyboardInput { event, .. } => match event.physical_key {
                 PhysicalKey::Code(code) => {
+                    self.graphics
+                        .context_mut()
+                        .set_key(code, event.state.is_pressed());
                     self.user_state
-                        .key(self.graphics.context_mut(), code, event.state.is_pressed())
+                        .key(self.graphics.context(), code, event.state.is_pressed())
                 }
                 _ => {}
             },
             WindowEvent::CursorMoved { position, .. } => self.user_state.cursor(
-                self.graphics.context_mut(),
+                self.graphics.context(),
                 vec2(position.x as f32, position.y as f32),
             ),
             WindowEvent::RedrawRequested => match self.graphics.render(&self.user_state) {
@@ -73,7 +75,7 @@ impl<T: State> WindowState<T> {
         let now = Instant::now();
         let delta = now - self.last_time;
         self.last_time = now;
-        self.user_state.update(self.graphics.context_mut(), delta);
+        self.user_state.update(self.graphics.context(), delta);
         self.window.request_redraw();
     }
 }

@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use glam::*;
 use winit::{
     dpi::PhysicalPosition,
+    keyboard::KeyCode,
     window::{CursorGrabMode, Window},
 };
 
@@ -11,6 +12,7 @@ pub struct Context {
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
     window: Arc<Window>,
+    keys: HashSet<KeyCode>,
 }
 
 impl Context {
@@ -28,6 +30,7 @@ impl Context {
             queue,
             format,
             window,
+            keys: HashSet::new(),
         }
     }
 
@@ -58,5 +61,17 @@ impl Context {
 
     pub fn lock_cursor(&self) {
         let _ = self.window.set_cursor_grab(CursorGrabMode::Locked);
+    }
+
+    pub(crate) fn set_key(&mut self, code: KeyCode, pressed: bool) {
+        if pressed {
+            self.keys.insert(code);
+        } else {
+            self.keys.remove(&code);
+        }
+    }
+
+    pub fn key(&self, code: KeyCode) -> bool {
+        self.keys.contains(&code)
     }
 }

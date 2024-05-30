@@ -37,11 +37,11 @@ pub type DynamicOffset = wgpu::DynamicOffset;
 pub use winit::keyboard::KeyCode;
 
 pub trait State {
-    fn new(context: &mut Context) -> Self;
-    fn resize(&mut self, _ctx: &mut Context, _width: f32, _height: f32) {}
-    fn key(&mut self, _ctx: &mut Context, _code: KeyCode, _pressed: bool) {}
-    fn cursor(&mut self, _ctx: &mut Context, _pos: Vec2) {}
-    fn update(&mut self, _ctx: &mut Context, _delta: Duration) {}
+    fn new(context: &Context) -> Self;
+    fn resize(&mut self, _ctx: &Context, _size: Vec2) {}
+    fn key(&mut self, _ctx: &Context, _code: KeyCode, _pressed: bool) {}
+    fn cursor(&mut self, _ctx: &Context, _pos: Vec2) {}
+    fn update(&mut self, _ctx: &Context, _delta: Duration) {}
     fn render(&self, frame: &mut Frame);
 }
 
