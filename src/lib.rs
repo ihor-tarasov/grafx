@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+pub use glam;
 use glam::*;
 use window_state::WindowState;
 use winit::{
