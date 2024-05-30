@@ -31,6 +31,7 @@ const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 struct Camera {
     position: Vec3,
     direction: Vec3,
+    direction_interpolated: Vec3,
     speed: f32,
     yaw: f32,
     pitch: f32,
@@ -45,6 +46,7 @@ impl Camera {
         Self {
             position: vec3(0.0, 1.0, 2.0),
             direction: vec3(0.0, 0.0, -1.0),
+            direction_interpolated: vec3(0.0, 0.0, -1.0),
             projection: Mat4::IDENTITY,
             view: Mat4::IDENTITY,
             speed,
@@ -118,7 +120,8 @@ impl Camera {
         if ctx.key(grafx::KeyCode::ShiftLeft) {
             self.position -= Vec3::Y * self.speed * delta;
         }
-        self.view = Mat4::look_to_rh(self.position, self.direction, Vec3::Y);
+        self.direction_interpolated = self.direction_interpolated.lerp(self.direction, delta * 10.0);
+        self.view = Mat4::look_to_rh(self.position, self.direction_interpolated, Vec3::Y);
     }
 }
 
