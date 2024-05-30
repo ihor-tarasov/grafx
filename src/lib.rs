@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use glam::*;
 use window_state::WindowState;
 use winit::{
     application::ApplicationHandler,
@@ -39,7 +40,8 @@ pub trait State {
     fn new(context: &mut Context) -> Self;
     fn resize(&mut self, _ctx: &mut Context, _width: f32, _height: f32) {}
     fn key(&mut self, _ctx: &mut Context, _code: KeyCode, _pressed: bool) {}
-    fn update(&mut self, _delta: Duration, _ctx: &mut Context) {}
+    fn cursor(&mut self, _ctx: &mut Context, _pos: Vec2) {}
+    fn update(&mut self, _ctx: &mut Context, _delta: Duration) {}
     fn render(&self, frame: &mut Frame);
 }
 

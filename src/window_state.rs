@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Instant};
 
+use glam::vec2;
 use winit::{
     event::WindowEvent,
     event_loop::ActiveEventLoop,
@@ -54,6 +55,10 @@ impl<T: State> WindowState<T> {
                 }
                 _ => {}
             },
+            WindowEvent::CursorMoved { position, .. } => self.user_state.cursor(
+                self.graphics.context_mut(),
+                vec2(position.x as f32, position.y as f32),
+            ),
             WindowEvent::RedrawRequested => match self.graphics.render(&self.user_state) {
                 Ok(_) => {}
                 Err(wgpu::SurfaceError::Lost) => self.graphics.resize_own(),
@@ -68,7 +73,7 @@ impl<T: State> WindowState<T> {
         let now = Instant::now();
         let delta = now - self.last_time;
         self.last_time = now;
-        self.user_state.update(delta, self.graphics.context_mut());
+        self.user_state.update(self.graphics.context_mut(), delta);
         self.window.request_redraw();
     }
 }

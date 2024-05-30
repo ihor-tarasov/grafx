@@ -30,26 +30,39 @@ const INDICES: &[u16] = &[0, 1, 2, 2, 3, 0];
 
 struct Camera {
     position: Vec3,
-    target: Vec3,
-    projection: Mat4,
+    direction: Vec3,
     speed: f32,
     forward: bool,
     backward: bool,
     left: bool,
     right: bool,
+    bottom: bool,
+    top: bool,
+    yaw: f32,
+    pitch: f32,
+    projection: Mat4,
+    view: Mat4,
+    locked: bool,
 }
 
 impl Camera {
-    fn new(speed: f32) -> Self {
+    fn new(ctx: &grafx::Context, speed: f32) -> Self {
+        ctx.set_cursor_position(ctx.size() / 2.0);
         Self {
             position: vec3(0.0, 1.0, 2.0),
-            target: vec3(0.0, 0.0, 0.0),
+            direction: vec3(0.0, 0.0, -1.0),
             projection: Mat4::IDENTITY,
+            view: Mat4::IDENTITY,
             speed,
             forward: false,
             backward: false,
             left: false,
             right: false,
+            bottom: false,
+            top: false,
+            yaw: -90.0f32.to_radians(),
+            pitch: 0.0,
+            locked: true,
         }
     }
 
@@ -57,9 +70,10 @@ impl Camera {
         self.projection = Mat4::perspective_rh(76f32.to_radians(), width / height, 0.1, 1000.0);
     }
 
-    fn matrix(&self) -> Mat4 {
-        let view = Mat4::look_at_rh(self.position, self.target, Vec3::Y);
-        self.projection * view
+    fn uniform(&self) -> CameraUniform {
+        CameraUniform {
+            view_proj: (self.projection * self.view).to_cols_array_2d(),
+        }
     }
 
     fn key(&mut self, code: grafx::KeyCode, pressed: bool) {
@@ -68,41 +82,61 @@ impl Camera {
             grafx::KeyCode::KeyA | grafx::KeyCode::ArrowLeft => self.left = pressed,
             grafx::KeyCode::KeyS | grafx::KeyCode::ArrowDown => self.backward = pressed,
             grafx::KeyCode::KeyD | grafx::KeyCode::ArrowRight => self.right = pressed,
+            grafx::KeyCode::ShiftLeft => self.bottom = pressed,
+            grafx::KeyCode::Space => self.top = pressed,
+            grafx::KeyCode::Escape => {
+                if pressed {
+                    self.locked = !self.locked;
+                }
+            }
             _ => {}
         }
     }
 
-    fn update_view(&mut self, delta: f32) {
-        let forward = self.target - self.position;
-        let forward_norm = forward.normalize();
-        let forward_mag = forward.length();
+    fn cursor(&mut self, ctx: &grafx::Context, pos: Vec2) {
+        if self.locked {
+            let sensitivity = 0.02;
+            let center = ctx.size() / 2.0;
+            let cursor_delta = pos - center;
+            ctx.set_cursor_position(center);
+            self.yaw += cursor_delta.x * sensitivity;
+            self.pitch -= cursor_delta.y * sensitivity;
 
-        // Prevents glitching when the camera gets too close to the
-        // center of the scene.
-        if self.forward && forward_mag > self.speed {
-            self.position += forward_norm * self.speed * delta;
+            if self.pitch > 89.0f32.to_radians() {
+                self.pitch = 89.0f32.to_radians();
+            }
+            if self.pitch < -89.0f32.to_radians() {
+                self.pitch = -89.0f32.to_radians();
+            }
+
+            self.direction = vec3(
+                self.yaw.cos() * self.pitch.cos(),
+                self.pitch.sin(),
+                self.yaw.sin() * self.pitch.cos(),
+            );
+        }
+    }
+
+    fn update_view(&mut self, delta: f32) {
+        if self.forward {
+            self.position += self.direction * self.speed * delta;
         }
         if self.backward {
-            self.position -= forward_norm * self.speed * delta;
-        }
-
-        let right = forward_norm.cross(Vec3::Y);
-
-        // Redo radius calc in case the forward/backward is pressed.
-        let forward = self.target - self.position;
-        let forward_mag = forward.length();
-
-        if self.right {
-            // Rescale the distance between the target and the eye so
-            // that it doesn't change. The eye, therefore, still
-            // lies on the circle made by the target and eye.
-            self.position =
-                self.target - (forward + right * self.speed).normalize() * forward_mag;
+            self.position -= self.direction * self.speed * delta;
         }
         if self.left {
-            self.position =
-                self.target - (forward - right * self.speed).normalize() * forward_mag;
+            self.position -= self.direction.cross(Vec3::Y).normalize() * self.speed * delta;
         }
+        if self.right {
+            self.position += self.direction.cross(Vec3::Y).normalize() * self.speed * delta;
+        }
+        if self.top {
+            self.position += Vec3::Y * self.speed * delta;
+        }
+        if self.bottom {
+            self.position -= Vec3::Y * self.speed * delta;
+        }
+        self.view = Mat4::look_to_rh(self.position, self.direction, Vec3::Y);
     }
 }
 
@@ -112,25 +146,12 @@ grafx::impl_uniform! {
     }
 }
 
-impl CameraUniform {
-    fn new() -> Self {
-        Self {
-            view_proj: Mat4::IDENTITY.to_cols_array_2d(),
-        }
-    }
-
-    fn update(&mut self, camera: &Camera) {
-        self.view_proj = camera.matrix().to_cols_array_2d();
-    }
-}
-
 struct Game {
     pipeline: grafx::Pipeline,
     vertex_buffer: grafx::VertexBuffer,
     index_buffer: grafx::IndexBufferU16,
     diffuse_bind_group: grafx::BindGroup,
     camera: Camera,
-    camera_uniform: CameraUniform,
     camera_buffer: grafx::UniformBuffer,
     camera_bind_group: grafx::BindGroup,
 }
@@ -148,9 +169,9 @@ impl grafx::State for Game {
             .with(&texture)
             .with(&sampler)
             .build(ctx, &mut pipeline_builder);
-        let camera = Camera::new(0.2);
-        let camera_uniform = CameraUniform::new();
-        let camera_buffer = grafx::UniformBuffer::new(ctx, &[camera_uniform]);
+        let mut camera = Camera::new(ctx, 1.0);
+        camera.update_projection(ctx.size().x, ctx.size().y);
+        let camera_buffer = grafx::UniformBuffer::new(ctx, &[camera.uniform()]);
         let camera_bind_group = grafx::BindGroupBuilder::new()
             .with(&camera_buffer)
             .build(ctx, &mut pipeline_builder);
@@ -161,7 +182,6 @@ impl grafx::State for Game {
             index_buffer,
             diffuse_bind_group,
             camera,
-            camera_uniform,
             camera_buffer,
             camera_bind_group,
         }
@@ -170,8 +190,7 @@ impl grafx::State for Game {
     fn resize(&mut self, ctx: &mut grafx::Context, width: f32, height: f32) {
         if width > 0.0 && height > 0.0 {
             self.camera.update_projection(width, height);
-            self.camera_uniform.update(&self.camera);
-            self.camera_buffer.write(ctx, 0, &[self.camera_uniform]);
+            self.camera_buffer.write(ctx, 0, &[self.camera.uniform()]);
         }
     }
 
@@ -179,10 +198,13 @@ impl grafx::State for Game {
         self.camera.key(code, pressed);
     }
 
-    fn update(&mut self, delta: Duration, ctx: &mut grafx::Context) {
+    fn cursor(&mut self, ctx: &mut grafx::Context, pos: Vec2) {
+        self.camera.cursor(ctx, pos);
+    }
+
+    fn update(&mut self, ctx: &mut grafx::Context, delta: Duration) {
         self.camera.update_view(delta.as_secs_f32());
-        self.camera_uniform.update(&self.camera);
-        self.camera_buffer.write(ctx, 0, &[self.camera_uniform]);
+        self.camera_buffer.write(ctx, 0, &[self.camera.uniform()]);
     }
 
     fn render(&self, frame: &mut grafx::Frame) {

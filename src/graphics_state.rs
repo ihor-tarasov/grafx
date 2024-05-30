@@ -49,10 +49,10 @@ impl GraphicsState {
     pub async fn new(window: Arc<Window>) -> Self {
         let size = window.inner_size();
         let instance = wgpu::Instance::default();
-        let surface = instance.create_surface(window).unwrap();
+        let surface = instance.create_surface(window.clone()).unwrap();
         let adapter = request_adapter(&instance, &surface).await;
         let config = create_surface_configuration(&adapter, &surface, size);
-        let context = Context::new(&adapter, config.format).await;
+        let context = Context::new(&adapter, config.format, window).await;
         Self {
             surface,
             config,
