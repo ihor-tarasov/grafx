@@ -156,7 +156,7 @@ impl grafx::State for Game {
             .build(ctx, &mut pipeline_builder);
         let mut camera = Camera::new(ctx, 1.0);
         camera.update_projection(ctx.size());
-        let camera_buffer = grafx::UniformBuffer::new(ctx, &[camera.uniform()]);
+        let camera_buffer = grafx::UniformBuffer::new(ctx, &camera.uniform());
         let camera_bind_group = grafx::BindGroupBuilder::new()
             .with(&camera_buffer)
             .build(ctx, &mut pipeline_builder);
@@ -175,7 +175,7 @@ impl grafx::State for Game {
     fn resize(&mut self, ctx: &grafx::Context, size: Vec2) {
         if size.x > 0.0 && size.y > 0.0 {
             self.camera.update_projection(size);
-            self.camera_buffer.write(ctx, 0, &[self.camera.uniform()]);
+            self.camera_buffer.write(ctx, 0, &self.camera.uniform());
         }
     }
 
@@ -189,7 +189,7 @@ impl grafx::State for Game {
 
     fn update(&mut self, ctx: &grafx::Context, delta: Duration) {
         self.camera.update_view(ctx, delta.as_secs_f32());
-        self.camera_buffer.write(ctx, 0, &[self.camera.uniform()]);
+        self.camera_buffer.write(ctx, 0, &self.camera.uniform());
     }
 
     fn render(&self, frame: &mut grafx::Frame) {

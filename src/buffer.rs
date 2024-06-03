@@ -7,20 +7,20 @@ use crate::{uniform, vertex, BindGroupEntry, BufferAddress, Context, Pass};
 pub struct UniformBuffer(wgpu::Buffer);
 
 impl UniformBuffer {
-    pub fn new<T: uniform::Uniform>(ctx: &Context, data: &[T]) -> Self {
+    pub fn new<T: uniform::Uniform>(ctx: &Context, data: &T) -> Self {
         Self(
             ctx.device()
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
-                    contents: bytemuck::cast_slice(data),
+                    contents: bytemuck::bytes_of(data),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 }),
         )
     }
 
-    pub fn write<T: uniform::Uniform>(&self, ctx: &Context, offset: BufferAddress, data: &[T]) {
+    pub fn write<T: uniform::Uniform>(&self, ctx: &Context, offset: BufferAddress, data: &T) {
         ctx.queue()
-            .write_buffer(&self.0, offset, bytemuck::cast_slice(data));
+            .write_buffer(&self.0, offset, bytemuck::bytes_of(data));
     }
 }
 

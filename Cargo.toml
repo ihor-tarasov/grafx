@@ -3,9 +3,6 @@ name = "grafx"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["dylib"]
-
 [dependencies]
 winit = "0.30.0"
 env_logger = "0.11.3"
